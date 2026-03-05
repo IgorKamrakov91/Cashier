@@ -40,6 +40,78 @@ mix credo        # code style
 mix dialyzer     # type checking
 ```
 
+## Try It
+
+Launch an interactive shell and play with the checkout:
+
+```bash
+iex -S mix
+```
+
+Then paste the following to simulate a shopping session:
+
+```elixir
+# 1. Set up pricing rules
+pricing_rules = [
+  {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
+  {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: "4.50"},
+  {Cashier.PricingRules.FractionPrice, product_code: "CF1", threshold: 3, fraction: {2, 3}}
+]
+
+# 2. Start a checkout
+{:ok, co} = Cashier.Checkout.new(pricing_rules)
+
+# 3. Scan some green tea (buy-one-get-one-free)
+Cashier.Checkout.scan(co, "GR1")
+Cashier.Checkout.scan(co, "GR1")
+Cashier.Checkout.total(co)
+#=> #Decimal<3.11>  — you pay for one!
+
+# 4. Add strawberries (bulk discount at 3+)
+Cashier.Checkout.scan(co, "SR1")
+Cashier.Checkout.scan(co, "SR1")
+Cashier.Checkout.scan(co, "SR1")
+Cashier.Checkout.total(co)
+#=> #Decimal<16.61>  — strawberries dropped to £4.50 each
+
+# 5. Add coffees (2/3 price at 3+)
+Cashier.Checkout.scan(co, "CF1")
+Cashier.Checkout.scan(co, "CF1")
+Cashier.Checkout.total(co)
+#=> #Decimal<39.07>  — 2 coffees at full price
+
+Cashier.Checkout.scan(co, "CF1")
+Cashier.Checkout.total(co)
+#=> #Decimal<42.18>  — 3rd coffee triggers discount, all coffees now at 2/3 price
+
+# 6. Try an unknown product
+Cashier.Checkout.scan(co, "NOPE")
+#=> {:error, "unknown product code: NOPE"}
+```
+
+### Quick verification of spec baskets
+
+```elixir
+# Helper to test a basket in one go
+test_basket = fn items ->
+  {:ok, co} = Cashier.Checkout.new(pricing_rules)
+  Enum.each(items, &Cashier.Checkout.scan(co, &1))
+  Cashier.Checkout.total(co)
+end
+
+test_basket.(~w[GR1 SR1 GR1 GR1 CF1])    #=> #Decimal<22.45>
+test_basket.(~w[GR1 GR1])                 #=> #Decimal<3.11>
+test_basket.(~w[SR1 SR1 GR1 SR1])         #=> #Decimal<16.61>
+test_basket.(~w[GR1 CF1 SR1 CF1 CF1])     #=> #Decimal<30.57>
+```
+
+### Browse the product catalog
+
+```elixir
+Cashier.Catalog.all()
+Cashier.Catalog.fetch!("GR1")
+```
+
 ## Usage
 
 ```elixir
