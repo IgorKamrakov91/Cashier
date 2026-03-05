@@ -1,16 +1,13 @@
 defmodule Cashier.Catalog do
   @moduledoc """
-  Product catalog providing lookup by product code.
+  Product catalog — lookup by product code.
 
-  Stores the available products in the supermarket. By default uses a
-  hardcoded product list, but can be configured via application environment:
+  Uses a built-in product list by default. Override via application config:
 
       config :cashier, :catalog_products, %{
         "GR1" => Cashier.Product.new("GR1", "Green tea", "3.11"),
-        "SR1" => Cashier.Product.new("SR1", "Strawberries", "5.00")
+        ...
       }
-
-  If no configuration is provided, the default product set is used.
   """
 
   alias Cashier.Product
@@ -22,9 +19,7 @@ defmodule Cashier.Catalog do
   }
 
   @doc """
-  Fetches a product by its code.
-
-  Returns `{:ok, product}` if found, `:error` otherwise.
+  Fetches a product by code. Returns `{:ok, product}` or `:error`.
 
   ## Examples
 
@@ -42,7 +37,7 @@ defmodule Cashier.Catalog do
   end
 
   @doc """
-  Fetches a product by its code, raising if not found.
+  Like `fetch/1` but raises on missing codes.
 
   ## Examples
 
@@ -59,9 +54,7 @@ defmodule Cashier.Catalog do
     end
   end
 
-  @doc """
-  Returns all products in the catalog.
-  """
+  @doc "Returns all products."
   @spec all() :: [Product.t()]
   def all, do: Map.values(products())
 

@@ -1,9 +1,6 @@
 defmodule Cashier.Product do
   @moduledoc """
-  Represents a product in the store.
-
-  Prices are stored as `Decimal` to avoid floating-point precision issues
-  in financial calculations.
+  A product with a code, name, and price (stored as `Decimal`).
   """
 
   @enforce_keys [:code, :name, :price]
@@ -16,9 +13,7 @@ defmodule Cashier.Product do
         }
 
   @doc """
-  Creates a new product.
-
-  Price can be given as a string, integer, or Decimal.
+  Creates a new product. Price is cast to Decimal.
 
   ## Examples
 

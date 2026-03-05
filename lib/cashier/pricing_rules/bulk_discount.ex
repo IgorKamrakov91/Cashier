@@ -1,19 +1,8 @@
 defmodule Cashier.PricingRules.BulkDiscount do
   @moduledoc """
-  Bulk discount pricing rule.
+  Bulk discount: drops unit price when quantity reaches `:threshold`.
 
-  When the quantity of a product reaches a threshold, the price per item
-  drops to a configured discount price.
-
-  ## Configuration
-
-  - `:threshold` (required) — minimum quantity to trigger the discount
-  - `:discount_price` (required) — the new price per item (as Decimal)
-
-  ## Example
-
-      rule = {Cashier.PricingRules.BulkDiscount,
-              product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")}
+  Requires `:threshold` (integer) and `:discount_price` (Decimal).
   """
 
   @behaviour Cashier.PricingRule

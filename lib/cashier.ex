@@ -1,24 +1,11 @@
 defmodule Cashier do
   @moduledoc """
-  A supermarket checkout system with flexible pricing rules.
-
-  Provides a convenience API that delegates to `Cashier.Checkout`.
-
-  ## Example
-
-      pricing_rules = [
-        {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
-        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")},
-        {Cashier.PricingRules.FractionPrice, product_code: "CF1", threshold: 3, fraction: {2, 3}}
-      ]
+  Convenience API that delegates to `Cashier.Checkout`.
 
       {:ok, co} = Cashier.new(pricing_rules)
       :ok = Cashier.scan(co, "GR1")
-      :ok = Cashier.scan(co, "GR1")
-      Cashier.total(co)
-      #=> Decimal.new("3.11")
+      Cashier.total(co)  #=> Decimal.new("3.11")
       :ok = Cashier.stop(co)
-
   """
 
   defdelegate new(pricing_rules \\ [], opts \\ []), to: Cashier.Checkout

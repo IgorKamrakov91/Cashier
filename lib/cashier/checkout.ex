@@ -1,27 +1,14 @@
 defmodule Cashier.Checkout do
   @moduledoc """
-  A checkout session modeled as a supervised GenServer process.
+  Supervised GenServer that holds a shopping cart and computes totals.
 
-  Each checkout holds a map of scanned items (as a frequency map) and a set
-  of pricing rules. Items can be scanned in any order, and the total is
-  computed on demand by applying the configured pricing rules.
-
-  Checkouts are started under a `DynamicSupervisor` and automatically
-  terminate after an idle timeout (default: 30 minutes).
-
-  ## Usage
-
-      pricing_rules = [
-        {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
-        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: "4.50"},
-        {Cashier.PricingRules.FractionPrice, product_code: "CF1", threshold: 3, fraction: {2, 3}}
-      ]
+  Each checkout keeps a frequency map of scanned items and a set of pricing
+  rules. Processes are started under a `DynamicSupervisor` and terminate
+  automatically after an idle timeout (default: 30 minutes).
 
       {:ok, co} = Cashier.Checkout.new(pricing_rules)
       :ok = Cashier.Checkout.scan(co, "GR1")
-      :ok = Cashier.Checkout.scan(co, "GR1")
-      Cashier.Checkout.total(co)
-      #=> Decimal.new("3.11")
+      Cashier.Checkout.total(co)  #=> Decimal.new("3.11")
       :ok = Cashier.Checkout.stop(co)
 
   """
@@ -43,23 +30,13 @@ defmodule Cashier.Checkout do
           timeout: non_neg_integer()
         }
 
-  # --- Client API ---
-
   @doc """
-  Starts a new supervised checkout process with the given pricing rules.
+  Starts a new checkout under the supervisor.
 
-  `pricing_rules` is a list of `{module, opts}` tuples where each module
-  implements the `Cashier.PricingRule` behaviour. Each rule must include
-  a `:product_code` option.
+  `pricing_rules` is a list of `{module, opts}` tuples (each must include
+  `:product_code`). Pass `timeout:` in `opts` to override the idle timeout.
 
-  ## Options
-
-  - `:timeout` — idle timeout in milliseconds (default: 30 minutes).
-    The checkout process terminates automatically after being idle for
-    this duration.
-
-  Raises `ArgumentError` if any rule is missing `:product_code` or if the
-  module does not implement `Cashier.PricingRule`.
+  Raises on invalid rules.
   """
   @spec new(list({module(), keyword()}), keyword()) :: {:ok, pid()}
   def new(pricing_rules \\ [], opts \\ []) do
@@ -72,35 +49,25 @@ defmodule Cashier.Checkout do
     )
   end
 
-  @doc """
-  Stops a checkout process gracefully.
-  """
+  @doc false
   @spec stop(pid()) :: :ok
   def stop(checkout) do
     GenServer.stop(checkout, :normal)
   end
 
-  @doc """
-  Scans a product by its code, adding it to the cart.
-
-  Returns `:ok` on success, `{:error, reason}` if the product is unknown.
-  """
+  @doc "Adds a product to the cart. Returns `{:error, reason}` for unknown codes."
   @spec scan(pid(), String.t()) :: :ok | {:error, String.t()}
   def scan(checkout, product_code) do
     GenServer.call(checkout, {:scan, product_code})
   end
 
-  @doc """
-  Computes the total price of all scanned items after applying pricing rules.
-
-  Returns the total as a `Decimal`.
-  """
+  @doc "Computes the total after applying pricing rules."
   @spec total(pid()) :: Decimal.t()
   def total(checkout) do
     GenServer.call(checkout, :total)
   end
 
-  # --- Server callbacks ---
+  # Server callbacks
 
   @doc false
   def child_spec(%__MODULE__{} = state) do
