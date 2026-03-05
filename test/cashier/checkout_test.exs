@@ -5,12 +5,12 @@ defmodule Cashier.CheckoutTest do
 
   @pricing_rules [
     {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
-    {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: "4.50"},
+    {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")},
     {Cashier.PricingRules.FractionPrice, product_code: "CF1", threshold: 3, fraction: {2, 3}}
   ]
 
   describe "new/1" do
-    test "starts a checkout process" do
+    test "starts a supervised checkout process" do
       assert {:ok, pid} = Cashier.new(@pricing_rules)
       assert is_pid(pid)
       assert Process.alive?(pid)
@@ -20,6 +20,18 @@ defmodule Cashier.CheckoutTest do
       {:ok, co} = Cashier.new(@pricing_rules)
 
       assert Decimal.equal?(Cashier.total(co), Decimal.new(0))
+    end
+
+    test "rejects rules missing :product_code" do
+      assert_raise ArgumentError, ~r/missing required :product_code/, fn ->
+        Cashier.new([{Cashier.PricingRules.BuyOneGetOneFree, []}])
+      end
+    end
+
+    test "rejects modules that don't implement the behaviour" do
+      assert_raise ArgumentError, ~r/does not implement/, fn ->
+        Cashier.new([{String, product_code: "GR1"}])
+      end
     end
   end
 
@@ -38,6 +50,44 @@ defmodule Cashier.CheckoutTest do
       assert {:error, _} = Cashier.scan(co, "INVALID")
 
       assert Decimal.equal?(Cashier.total(co), Decimal.new("3.11"))
+    end
+  end
+
+  describe "stop/1" do
+    test "gracefully terminates the checkout process" do
+      {:ok, co} = Cashier.new(@pricing_rules)
+      assert Process.alive?(co)
+
+      :ok = Cashier.stop(co)
+      refute Process.alive?(co)
+    end
+  end
+
+  describe "idle timeout" do
+    @tag timeout: 2000
+    test "checkout terminates after idle timeout" do
+      {:ok, co} = Cashier.new(@pricing_rules, timeout: 100)
+      assert Process.alive?(co)
+
+      ref = Process.monitor(co)
+      assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 500
+    end
+
+    @tag timeout: 3000
+    test "activity resets the timeout" do
+      {:ok, co} = Cashier.new(@pricing_rules, timeout: 300)
+
+      # Wait 200ms (within timeout), then scan to reset the timer
+      Process.sleep(200)
+      :ok = Cashier.scan(co, "GR1")
+
+      # Wait another 200ms — would have expired without the reset
+      Process.sleep(200)
+      assert Process.alive?(co)
+
+      # Now let it expire
+      ref = Process.monitor(co)
+      assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 500
     end
   end
 
@@ -161,7 +211,7 @@ defmodule Cashier.CheckoutTest do
   describe "flexible rules" do
     test "different threshold for bulk discount" do
       rules = [
-        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 5, discount_price: "4.00"}
+        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 5, discount_price: Decimal.new("4.00")}
       ]
 
       {:ok, co} = Cashier.new(rules)

@@ -8,7 +8,7 @@ defmodule Cashier do
 
       pricing_rules = [
         {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
-        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: "4.50"},
+        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")},
         {Cashier.PricingRules.FractionPrice, product_code: "CF1", threshold: 3, fraction: {2, 3}}
       ]
 
@@ -17,10 +17,12 @@ defmodule Cashier do
       :ok = Cashier.scan(co, "GR1")
       Cashier.total(co)
       #=> Decimal.new("3.11")
+      :ok = Cashier.stop(co)
 
   """
 
-  defdelegate new(pricing_rules \\ []), to: Cashier.Checkout
+  defdelegate new(pricing_rules \\ [], opts \\ []), to: Cashier.Checkout
   defdelegate scan(checkout, product_code), to: Cashier.Checkout
   defdelegate total(checkout), to: Cashier.Checkout
+  defdelegate stop(checkout), to: Cashier.Checkout
 end

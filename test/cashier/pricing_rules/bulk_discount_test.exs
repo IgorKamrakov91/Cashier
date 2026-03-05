@@ -4,7 +4,7 @@ defmodule Cashier.PricingRules.BulkDiscountTest do
   alias Cashier.PricingRules.BulkDiscount
 
   @price Decimal.new("5.00")
-  @opts [product_code: "SR1", threshold: 3, discount_price: "4.50"]
+  @opts [product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")]
 
   describe "calculate/3" do
     test "one item — full price" do
