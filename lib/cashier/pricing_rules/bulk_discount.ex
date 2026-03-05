@@ -7,7 +7,6 @@ defmodule Cashier.PricingRules.BulkDiscount do
 
   ## Configuration
 
-  - `:product_code` (required) — the product code this rule applies to
   - `:threshold` (required) — minimum quantity to trigger the discount
   - `:discount_price` (required) — the new price per item (as string or Decimal)
 
@@ -19,29 +18,13 @@ defmodule Cashier.PricingRules.BulkDiscount do
 
   @behaviour Cashier.PricingRule
 
-  alias Cashier.Catalog
-
   @impl true
-  def calculate(items, product_code, opts) do
-    rule_product_code = Keyword.fetch!(opts, :product_code)
+  def calculate(quantity, price, opts) do
+    threshold = Keyword.fetch!(opts, :threshold)
+    discount_price = opts |> Keyword.fetch!(:discount_price) |> Decimal.new()
 
-    if product_code != rule_product_code do
-      default_total(items, product_code)
-    else
-      threshold = Keyword.fetch!(opts, :threshold)
-      discount_price = opts |> Keyword.fetch!(:discount_price) |> Decimal.new()
+    effective_price = if quantity >= threshold, do: discount_price, else: price
 
-      quantity = Enum.count(items, &(&1 == product_code))
-      price = if quantity >= threshold, do: discount_price, else: Catalog.fetch!(product_code).price
-
-      Decimal.mult(price, quantity)
-    end
-  end
-
-  defp default_total(items, product_code) do
-    quantity = Enum.count(items, &(&1 == product_code))
-    price = Catalog.fetch!(product_code).price
-
-    Decimal.mult(price, quantity)
+    Decimal.mult(effective_price, quantity)
   end
 end

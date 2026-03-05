@@ -73,7 +73,7 @@ defmodule Cashier.Checkout do
         {:reply, :ok, %{state | items: [product_code | state.items]}}
 
       :error ->
-        {:reply, {:error, "unknown product code: #{product_code}"}, state}
+        {:reply, {:error, "unknown product code: #{inspect(product_code)}"}, state}
     end
   end
 
@@ -95,13 +95,14 @@ defmodule Cashier.Checkout do
   end
 
   defp calculate_product_total(items, product_code, pricing_rules) do
+    quantity = Enum.count(items, &(&1 == product_code))
+    price = Catalog.fetch!(product_code).price
+
     case find_rule(product_code, pricing_rules) do
       {module, opts} ->
-        module.calculate(items, product_code, opts)
+        module.calculate(quantity, price, opts)
 
       nil ->
-        quantity = Enum.count(items, &(&1 == product_code))
-        price = Catalog.fetch!(product_code).price
         Decimal.mult(price, quantity)
     end
   end

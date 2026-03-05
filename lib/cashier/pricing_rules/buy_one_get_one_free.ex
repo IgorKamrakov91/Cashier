@@ -7,7 +7,7 @@ defmodule Cashier.PricingRules.BuyOneGetOneFree do
 
   ## Configuration
 
-  - `:product_code` (required) — the product code this rule applies to
+  No additional configuration required beyond `:product_code`.
 
   ## Example
 
@@ -16,27 +16,10 @@ defmodule Cashier.PricingRules.BuyOneGetOneFree do
 
   @behaviour Cashier.PricingRule
 
-  alias Cashier.Catalog
-
   @impl true
-  def calculate(items, product_code, opts) do
-    rule_product_code = Keyword.fetch!(opts, :product_code)
+  def calculate(quantity, price, _opts) do
+    payable = div(quantity, 2) + rem(quantity, 2)
 
-    if product_code != rule_product_code do
-      default_total(items, product_code)
-    else
-      quantity = Enum.count(items, &(&1 == product_code))
-      payable = div(quantity, 2) + rem(quantity, 2)
-      price = Catalog.fetch!(product_code).price
-
-      Decimal.mult(price, payable)
-    end
-  end
-
-  defp default_total(items, product_code) do
-    quantity = Enum.count(items, &(&1 == product_code))
-    price = Catalog.fetch!(product_code).price
-
-    Decimal.mult(price, quantity)
+    Decimal.mult(price, payable)
   end
 end

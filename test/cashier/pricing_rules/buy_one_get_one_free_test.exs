@@ -3,51 +3,28 @@ defmodule Cashier.PricingRules.BuyOneGetOneFreeTest do
 
   alias Cashier.PricingRules.BuyOneGetOneFree
 
+  @price Decimal.new("3.11")
   @opts [product_code: "GR1"]
 
-  describe "calculate/3 for green tea (GR1)" do
+  describe "calculate/3" do
     test "single item — no discount" do
-      items = ["GR1"]
-      result = BuyOneGetOneFree.calculate(items, "GR1", @opts)
-
-      assert Decimal.equal?(result, Decimal.new("3.11"))
+      assert Decimal.equal?(BuyOneGetOneFree.calculate(1, @price, @opts), Decimal.new("3.11"))
     end
 
     test "two items — pay for one" do
-      items = ["GR1", "GR1"]
-      result = BuyOneGetOneFree.calculate(items, "GR1", @opts)
-
-      assert Decimal.equal?(result, Decimal.new("3.11"))
+      assert Decimal.equal?(BuyOneGetOneFree.calculate(2, @price, @opts), Decimal.new("3.11"))
     end
 
     test "three items — pay for two" do
-      items = ["GR1", "GR1", "GR1"]
-      result = BuyOneGetOneFree.calculate(items, "GR1", @opts)
-
-      assert Decimal.equal?(result, Decimal.new("6.22"))
+      assert Decimal.equal?(BuyOneGetOneFree.calculate(3, @price, @opts), Decimal.new("6.22"))
     end
 
     test "four items — pay for two" do
-      items = ["GR1", "GR1", "GR1", "GR1"]
-      result = BuyOneGetOneFree.calculate(items, "GR1", @opts)
-
-      assert Decimal.equal?(result, Decimal.new("6.22"))
+      assert Decimal.equal?(BuyOneGetOneFree.calculate(4, @price, @opts), Decimal.new("6.22"))
     end
 
     test "five items — pay for three" do
-      items = ["GR1", "GR1", "GR1", "GR1", "GR1"]
-      result = BuyOneGetOneFree.calculate(items, "GR1", @opts)
-
-      assert Decimal.equal?(result, Decimal.new("9.33"))
-    end
-  end
-
-  describe "calculate/3 for non-target product" do
-    test "returns full price for unrelated product" do
-      items = ["SR1", "SR1"]
-      result = BuyOneGetOneFree.calculate(items, "SR1", @opts)
-
-      assert Decimal.equal?(result, Decimal.new("10.00"))
+      assert Decimal.equal?(BuyOneGetOneFree.calculate(5, @price, @opts), Decimal.new("9.33"))
     end
   end
 end
