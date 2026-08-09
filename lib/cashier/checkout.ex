@@ -124,6 +124,11 @@ defmodule Cashier.Checkout do
       raise ArgumentError,
             "pricing rule #{inspect(module)} is missing required :product_code option"
     end
+
+    unless Code.ensure_loaded?(module) and function_exported?(module, :calculate, 3) do
+      raise ArgumentError,
+            "pricing rule #{inspect(module)} does not implement calculate/3"
+    end
   end
 
   defp calculate_total(items, rules) do

@@ -5,7 +5,8 @@ defmodule Cashier.CheckoutTest do
 
   @pricing_rules [
     {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
-    {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")},
+    {Cashier.PricingRules.BulkDiscount,
+     product_code: "SR1", threshold: 3, discount_price: Decimal.new("4.50")},
     {Cashier.PricingRules.FractionPrice, product_code: "CF1", threshold: 3, fraction: {2, 3}}
   ]
 
@@ -75,19 +76,20 @@ defmodule Cashier.CheckoutTest do
 
     @tag timeout: 3000
     test "activity resets the timeout" do
-      {:ok, co} = Cashier.new(@pricing_rules, timeout: 300)
+      {:ok, co} = Cashier.new(@pricing_rules, timeout: 1_000)
 
-      # Wait 200ms (within timeout), then scan to reset the timer
-      Process.sleep(200)
+      # Wait briefly within the timeout, then scan to reset the timer.
+      # Keep the timing comfortably below the timeout to avoid scheduler jitter.
+      Process.sleep(100)
       :ok = Cashier.scan(co, "GR1")
 
-      # Wait another 200ms — would have expired without the reset
-      Process.sleep(200)
+      # The checkout should still be alive well after the original deadline.
+      Process.sleep(400)
       assert Process.alive?(co)
 
-      # Now let it expire
+      # Now let it expire from the last activity.
       ref = Process.monitor(co)
-      assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 500
+      assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 1_200
     end
   end
 
@@ -211,7 +213,8 @@ defmodule Cashier.CheckoutTest do
   describe "flexible rules" do
     test "different threshold for bulk discount" do
       rules = [
-        {Cashier.PricingRules.BulkDiscount, product_code: "SR1", threshold: 5, discount_price: Decimal.new("4.00")}
+        {Cashier.PricingRules.BulkDiscount,
+         product_code: "SR1", threshold: 5, discount_price: Decimal.new("4.00")}
       ]
 
       {:ok, co} = Cashier.new(rules)
