@@ -27,20 +27,21 @@ defmodule Cashier.Checkout do
   @type t :: %__MODULE__{
           items: %{String.t() => non_neg_integer()},
           rules: %{String.t() => {module(), keyword()}},
-          timeout: non_neg_integer()
+          timeout: non_neg_integer() | :infinity
         }
 
   @doc """
   Starts a new checkout under the supervisor.
 
   `pricing_rules` is a list of `{module, opts}` tuples (each must include
-  `:product_code`). Pass `timeout:` in `opts` to override the idle timeout.
+  `:product_code`). Pass a non-negative `timeout:` in `opts` to override the
+  idle timeout, or `:infinity` to keep the checkout alive until it is stopped.
 
-  Raises on invalid rules.
+  Raises on invalid rules or timeout values.
   """
-  @spec new(list({module(), keyword()}), keyword()) :: {:ok, pid()}
+  @spec new(list({module(), keyword()}), keyword()) :: {:ok, pid()} | {:error, term()}
   def new(pricing_rules \\ [], opts \\ []) do
-    timeout = Keyword.get(opts, :timeout, @default_timeout)
+    timeout = opts |> Keyword.get(:timeout, @default_timeout) |> validate_timeout!()
     rules_map = validate_and_build_rules!(pricing_rules)
 
     DynamicSupervisor.start_child(
@@ -129,6 +130,14 @@ defmodule Cashier.Checkout do
       raise ArgumentError,
             "pricing rule #{inspect(module)} does not implement calculate/3"
     end
+  end
+
+  defp validate_timeout!(:infinity), do: :infinity
+  defp validate_timeout!(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
+
+  defp validate_timeout!(timeout) do
+    raise ArgumentError,
+          "timeout must be a non-negative integer or :infinity, got: #{inspect(timeout)}"
   end
 
   defp calculate_total(items, rules) do

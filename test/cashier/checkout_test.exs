@@ -34,6 +34,18 @@ defmodule Cashier.CheckoutTest do
         Cashier.new([{String, product_code: "GR1"}])
       end
     end
+
+    test "rejects invalid idle timeouts" do
+      assert_raise ArgumentError, ~r/timeout must be a non-negative integer/, fn ->
+        Cashier.new([], timeout: -1)
+      end
+    end
+
+    test "accepts an infinite idle timeout" do
+      assert {:ok, co} = Cashier.new([], timeout: :infinity)
+      assert Process.alive?(co)
+      :ok = Cashier.stop(co)
+    end
   end
 
   describe "scan/2" do
