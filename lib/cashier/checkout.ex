@@ -37,7 +37,8 @@ defmodule Cashier.Checkout do
   `:product_code`). Pass a non-negative `timeout:` in `opts` to override the
   idle timeout, or `:infinity` to keep the checkout alive until it is stopped.
 
-  Raises on invalid rules or timeout values.
+  Raises on invalid rules or timeout values. Only one pricing rule may be
+  configured for each product code.
   """
   @spec new(list({module(), keyword()}), keyword()) :: {:ok, pid()} | {:error, term()}
   def new(pricing_rules \\ [], opts \\ []) do
@@ -113,10 +114,16 @@ defmodule Cashier.Checkout do
   end
 
   defp validate_and_build_rules!(pricing_rules) do
-    Map.new(pricing_rules, fn {module, opts} ->
+    Enum.reduce(pricing_rules, %{}, fn {module, opts}, rules ->
       validate_rule!(module, opts)
       product_code = Keyword.fetch!(opts, :product_code)
-      {product_code, {module, opts}}
+
+      if Map.has_key?(rules, product_code) do
+        raise ArgumentError,
+              "multiple pricing rules configured for product code: #{inspect(product_code)}"
+      end
+
+      Map.put(rules, product_code, {module, opts})
     end)
   end
 

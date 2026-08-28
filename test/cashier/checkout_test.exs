@@ -35,6 +35,20 @@ defmodule Cashier.CheckoutTest do
       end
     end
 
+    test "rejects multiple rules for the same product code" do
+      rules = [
+        {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},
+        {Cashier.PricingRules.BulkDiscount,
+         product_code: "GR1", threshold: 2, discount_price: Decimal.new("2.00")}
+      ]
+
+      assert_raise ArgumentError,
+                   ~r/multiple pricing rules configured for product code: "GR1"/,
+                   fn ->
+                     Cashier.new(rules)
+                   end
+    end
+
     test "rejects invalid idle timeouts" do
       assert_raise ArgumentError, ~r/timeout must be a non-negative integer/, fn ->
         Cashier.new([], timeout: -1)

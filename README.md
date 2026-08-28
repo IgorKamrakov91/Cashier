@@ -57,7 +57,7 @@ lib/cashier/
 
 ### Design Decisions
 
-**Pricing rules as a behaviour with `{module, opts}` tuples.** Each rule implements `calculate(quantity, price, opts)`. Rules are validated and indexed by product code at checkout creation time. The CEO can change from BOGO to a 30% discount by simply swapping the rule tuple — no code changes needed.
+**Pricing rules as a behaviour with `{module, opts}` tuples.** Each rule implements `calculate(quantity, price, opts)`. Rules are validated and indexed by product code at checkout creation time; configuring two rules for the same code raises an error rather than silently selecting one. The CEO can change from BOGO to a 30% discount by simply swapping the rule tuple — no code changes needed.
 
 **Supervised GenServer per checkout session.** Checkouts are started under a `DynamicSupervisor` with `:temporary` restart strategy. Each cart has an idle timeout (default: 30 minutes) to prevent process leaks from abandoned sessions. Graceful shutdown via `stop/1`.
 
