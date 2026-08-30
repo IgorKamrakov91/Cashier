@@ -29,6 +29,12 @@ defmodule Cashier.CheckoutTest do
       end
     end
 
+    test "rejects rules for unknown products" do
+      assert_raise ArgumentError, ~r/references unknown product code: "UNKNOWN"/, fn ->
+        Cashier.new([{Cashier.PricingRules.BuyOneGetOneFree, product_code: "UNKNOWN"}])
+      end
+    end
+
     test "rejects modules that don't implement the behaviour" do
       assert_raise ArgumentError, ~r/does not implement/, fn ->
         Cashier.new([{String, product_code: "GR1"}])

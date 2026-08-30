@@ -133,6 +133,13 @@ defmodule Cashier.Checkout do
             "pricing rule #{inspect(module)} is missing required :product_code option"
     end
 
+    product_code = Keyword.fetch!(opts, :product_code)
+
+    if Catalog.fetch(product_code) == :error do
+      raise ArgumentError,
+            "pricing rule #{inspect(module)} references unknown product code: #{inspect(product_code)}"
+    end
+
     unless Code.ensure_loaded?(module) and function_exported?(module, :calculate, 3) do
       raise ArgumentError,
             "pricing rule #{inspect(module)} does not implement calculate/3"
