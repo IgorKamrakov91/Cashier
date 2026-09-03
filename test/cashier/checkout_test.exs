@@ -84,6 +84,15 @@ defmodule Cashier.CheckoutTest do
 
       assert Decimal.equal?(Cashier.total(co), Decimal.new("3.11"))
     end
+
+    test "rejects non-string product codes without affecting cart" do
+      {:ok, co} = Cashier.new(@pricing_rules)
+      :ok = Cashier.scan(co, "GR1")
+
+      assert {:error, "product code must be a string, got: nil"} = Cashier.scan(co, nil)
+
+      assert Decimal.equal?(Cashier.total(co), Decimal.new("3.11"))
+    end
   end
 
   describe "stop/1" do

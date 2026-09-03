@@ -57,7 +57,7 @@ defmodule Cashier.Checkout do
     GenServer.stop(checkout, :normal)
   end
 
-  @doc "Adds a product to the cart. Returns `{:error, reason}` for unknown codes."
+  @doc "Adds a product to the cart. Returns `{:error, reason}` for invalid or unknown codes."
   @spec scan(pid(), String.t()) :: :ok | {:error, String.t()}
   def scan(checkout, product_code) do
     GenServer.call(checkout, {:scan, product_code})
@@ -88,6 +88,12 @@ defmodule Cashier.Checkout do
   @impl true
   def init(%__MODULE__{timeout: timeout} = state) do
     {:ok, state, timeout}
+  end
+
+  @impl true
+  def handle_call({:scan, product_code}, _from, state) when not is_binary(product_code) do
+    {:reply, {:error, "product code must be a string, got: #{inspect(product_code)}"}, state,
+     state.timeout}
   end
 
   @impl true
