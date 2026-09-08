@@ -54,9 +54,13 @@ defmodule Cashier.Catalog do
     end
   end
 
-  @doc "Returns all products."
+  @doc "Returns all products ordered by product code."
   @spec all() :: [Product.t()]
-  def all, do: Map.values(products())
+  def all do
+    products()
+    |> Map.values()
+    |> Enum.sort_by(& &1.code)
+  end
 
   defp products do
     Application.get_env(:cashier, :catalog_products, @default_products)

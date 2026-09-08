@@ -22,12 +22,10 @@ defmodule Cashier.CatalogTest do
     end
   end
 
-  test "all/0 returns all three products" do
+  test "all/0 returns all products ordered by code" do
     products = Catalog.all()
 
-    assert length(products) == 3
-    codes = Enum.map(products, & &1.code) |> Enum.sort()
-    assert codes == ["CF1", "GR1", "SR1"]
+    assert Enum.map(products, & &1.code) == ["CF1", "GR1", "SR1"]
   end
 
   test "catalog contains correct prices" do
