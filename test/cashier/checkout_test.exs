@@ -29,6 +29,16 @@ defmodule Cashier.CheckoutTest do
       end
     end
 
+    test "rejects malformed pricing rule entries with a clear error" do
+      assert_raise ArgumentError, ~r/pricing rules must be \{module, keyword_list\} tuples/, fn ->
+        Cashier.new([Cashier.PricingRules.BuyOneGetOneFree])
+      end
+
+      assert_raise ArgumentError, ~r/pricing rule options must be a keyword list/, fn ->
+        Cashier.new([{Cashier.PricingRules.BuyOneGetOneFree, ["GR1"]}])
+      end
+    end
+
     test "rejects rules for unknown products" do
       assert_raise ArgumentError, ~r/references unknown product code: "UNKNOWN"/, fn ->
         Cashier.new([{Cashier.PricingRules.BuyOneGetOneFree, product_code: "UNKNOWN"}])

@@ -120,16 +120,26 @@ defmodule Cashier.Checkout do
   end
 
   defp validate_and_build_rules!(pricing_rules) do
-    Enum.reduce(pricing_rules, %{}, fn {module, opts}, rules ->
-      validate_rule!(module, opts)
-      product_code = Keyword.fetch!(opts, :product_code)
+    Enum.reduce(pricing_rules, %{}, fn
+      {module, opts}, rules when is_atom(module) and is_list(opts) ->
+        unless Keyword.keyword?(opts) do
+          raise ArgumentError,
+                "pricing rule options must be a keyword list, got: #{inspect(opts)}"
+        end
 
-      if Map.has_key?(rules, product_code) do
+        validate_rule!(module, opts)
+        product_code = Keyword.fetch!(opts, :product_code)
+
+        if Map.has_key?(rules, product_code) do
+          raise ArgumentError,
+                "multiple pricing rules configured for product code: #{inspect(product_code)}"
+        end
+
+        Map.put(rules, product_code, {module, opts})
+
+      rule, _rules ->
         raise ArgumentError,
-              "multiple pricing rules configured for product code: #{inspect(product_code)}"
-      end
-
-      Map.put(rules, product_code, {module, opts})
+              "pricing rules must be {module, keyword_list} tuples, got: #{inspect(rule)}"
     end)
   end
 
