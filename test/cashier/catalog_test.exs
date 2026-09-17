@@ -1,5 +1,6 @@
 defmodule Cashier.CatalogTest do
-  use ExUnit.Case, async: true
+  # This module changes process-wide application configuration in one test.
+  use ExUnit.Case
 
   alias Cashier.Catalog
 
@@ -34,5 +35,27 @@ defmodule Cashier.CatalogTest do
 
     assert {:ok, cf1} = Catalog.fetch("CF1")
     assert Decimal.equal?(cf1.price, Decimal.new("11.23"))
+  end
+
+  test "uses products configured in the application environment" do
+    products = %{
+      "BK1" => Cashier.Product.new("BK1", "Book", "12.50")
+    }
+
+    previous_products = Application.get_env(:cashier, :catalog_products)
+    Application.put_env(:cashier, :catalog_products, products)
+
+    on_exit(fn ->
+      if previous_products do
+        Application.put_env(:cashier, :catalog_products, previous_products)
+      else
+        Application.delete_env(:cashier, :catalog_products)
+      end
+    end)
+
+    assert {:ok, product} = Catalog.fetch("BK1")
+    assert product.name == "Book"
+    assert Decimal.equal?(product.price, Decimal.new("12.50"))
+    assert :error = Catalog.fetch("GR1")
   end
 end

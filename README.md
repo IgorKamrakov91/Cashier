@@ -67,6 +67,25 @@ lib/cashier/
 
 **Frequency map for items.** Cart items are stored as `%{"GR1" => 2, "SR1" => 1}` instead of a flat list, making quantity lookups O(1).
 
+### Configure a custom catalog
+
+Set `:catalog_products` to a map keyed by product code when the built-in sample
+catalog is not appropriate. Each value must be a `Cashier.Product`:
+
+```elixir
+# config/runtime.exs
+import Config
+
+config :cashier, :catalog_products, %{
+  "BK1" => Cashier.Product.new("BK1", "Book", "12.50"),
+  "PN1" => Cashier.Product.new("PN1", "Pen", "1.20")
+}
+```
+
+The configured map replaces the complete default catalog. Configure every
+product code your checkout will scan, then use those codes in pricing rules as
+usual.
+
 ## Test Data
 
 | Basket                 | Total   |
