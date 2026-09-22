@@ -51,6 +51,31 @@ defmodule Cashier.CheckoutTest do
       end
     end
 
+    test "rejects invalid options for built-in pricing rules before checkout starts" do
+      assert_raise ArgumentError, ~r/bulk discount :threshold must be a positive integer/, fn ->
+        Cashier.new([
+          {Cashier.PricingRules.BulkDiscount,
+           product_code: "SR1", discount_price: Decimal.new("4.50")}
+        ])
+      end
+
+      assert_raise ArgumentError,
+                   ~r/bulk discount :discount_price must be a non-negative Decimal/,
+                   fn ->
+                     Cashier.new([
+                       {Cashier.PricingRules.BulkDiscount,
+                        product_code: "SR1", threshold: 3, discount_price: Decimal.new("-1.00")}
+                     ])
+                   end
+
+      assert_raise ArgumentError, ~r/fraction price :fraction/, fn ->
+        Cashier.new([
+          {Cashier.PricingRules.FractionPrice,
+           product_code: "CF1", threshold: 3, fraction: {2, 0}}
+        ])
+      end
+    end
+
     test "rejects multiple rules for the same product code" do
       rules = [
         {Cashier.PricingRules.BuyOneGetOneFree, product_code: "GR1"},

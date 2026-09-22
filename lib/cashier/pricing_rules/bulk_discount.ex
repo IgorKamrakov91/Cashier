@@ -8,6 +8,22 @@ defmodule Cashier.PricingRules.BulkDiscount do
   @behaviour Cashier.PricingRule
 
   @impl true
+  def validate_options!(opts) do
+    threshold = Keyword.get(opts, :threshold)
+    discount_price = Keyword.get(opts, :discount_price)
+
+    unless is_integer(threshold) and threshold > 0 do
+      raise ArgumentError, "bulk discount :threshold must be a positive integer"
+    end
+
+    unless match?(%Decimal{}, discount_price) and Decimal.compare(discount_price, 0) != :lt do
+      raise ArgumentError, "bulk discount :discount_price must be a non-negative Decimal"
+    end
+
+    :ok
+  end
+
+  @impl true
   def calculate(quantity, price, opts) do
     threshold = Keyword.fetch!(opts, :threshold)
     discount_price = Keyword.fetch!(opts, :discount_price)

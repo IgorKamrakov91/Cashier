@@ -23,4 +23,14 @@ defmodule Cashier.PricingRule do
               price :: Decimal.t(),
               opts :: keyword()
             ) :: Decimal.t()
+
+  @doc """
+  Validates rule-specific options at checkout creation time.
+
+  This callback is optional so existing custom rules that only implement
+  `calculate/3` remain supported.
+  """
+  @callback validate_options!(opts :: keyword()) :: :ok
+
+  @optional_callbacks validate_options!: 1
 end

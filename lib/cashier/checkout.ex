@@ -160,6 +160,10 @@ defmodule Cashier.Checkout do
       raise ArgumentError,
             "pricing rule #{inspect(module)} does not implement calculate/3"
     end
+
+    if function_exported?(module, :validate_options!, 1) do
+      module.validate_options!(opts)
+    end
   end
 
   defp validate_timeout!(:infinity), do: :infinity
