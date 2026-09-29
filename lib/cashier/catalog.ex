@@ -21,6 +21,9 @@ defmodule Cashier.Catalog do
   @doc """
   Fetches a product by code. Returns `{:ok, product}` or `:error`.
 
+  Raises `ArgumentError` when a configured catalog is not a map of product
+  codes to `Cashier.Product` structs.
+
   ## Examples
 
       iex> {:ok, product} = Cashier.Catalog.fetch("GR1")
@@ -63,6 +66,16 @@ defmodule Cashier.Catalog do
   end
 
   defp products do
-    Application.get_env(:cashier, :catalog_products, @default_products)
+    products = Application.get_env(:cashier, :catalog_products, @default_products)
+
+    unless is_map(products) and
+             Enum.all?(products, fn {code, product} ->
+               is_binary(code) and match?(%Product{}, product)
+             end) do
+      raise ArgumentError,
+            ":catalog_products must be a map of string product codes to Cashier.Product structs"
+    end
+
+    products
   end
 end

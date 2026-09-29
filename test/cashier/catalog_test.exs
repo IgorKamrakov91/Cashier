@@ -58,4 +58,42 @@ defmodule Cashier.CatalogTest do
     assert Decimal.equal?(product.price, Decimal.new("12.50"))
     assert :error = Catalog.fetch("GR1")
   end
+
+  test "rejects malformed configured catalogs with a clear error" do
+    previous_products = Application.get_env(:cashier, :catalog_products)
+    Application.put_env(:cashier, :catalog_products, ["not a catalog"])
+
+    on_exit(fn ->
+      if previous_products do
+        Application.put_env(:cashier, :catalog_products, previous_products)
+      else
+        Application.delete_env(:cashier, :catalog_products)
+      end
+    end)
+
+    assert_raise ArgumentError,
+                 ":catalog_products must be a map of string product codes to Cashier.Product structs",
+                 fn ->
+                   Catalog.fetch("GR1")
+                 end
+  end
+
+  test "rejects catalog entries that are not products" do
+    previous_products = Application.get_env(:cashier, :catalog_products)
+    Application.put_env(:cashier, :catalog_products, %{"GR1" => "not a product"})
+
+    on_exit(fn ->
+      if previous_products do
+        Application.put_env(:cashier, :catalog_products, previous_products)
+      else
+        Application.delete_env(:cashier, :catalog_products)
+      end
+    end)
+
+    assert_raise ArgumentError,
+                 ":catalog_products must be a map of string product codes to Cashier.Product structs",
+                 fn ->
+                   Catalog.all()
+                 end
+  end
 end
