@@ -72,7 +72,7 @@ defmodule Cashier.CatalogTest do
     end)
 
     assert_raise ArgumentError,
-                 ":catalog_products must be a map of string product codes to Cashier.Product structs",
+                 ":catalog_products must map string codes to Cashier.Product structs with matching codes and Decimal prices",
                  fn ->
                    Catalog.fetch("GR1")
                  end
@@ -80,6 +80,7 @@ defmodule Cashier.CatalogTest do
 
   test "rejects catalog entries that are not products" do
     previous_products = Application.get_env(:cashier, :catalog_products)
+
     Application.put_env(:cashier, :catalog_products, %{"GR1" => "not a product"})
 
     on_exit(fn ->
@@ -91,9 +92,49 @@ defmodule Cashier.CatalogTest do
     end)
 
     assert_raise ArgumentError,
-                 ":catalog_products must be a map of string product codes to Cashier.Product structs",
+                 ":catalog_products must map string codes to Cashier.Product structs with matching codes and Decimal prices",
                  fn ->
                    Catalog.all()
                  end
+  end
+
+  test "rejects product codes that disagree with catalog keys" do
+    previous_products = Application.get_env(:cashier, :catalog_products)
+
+    Application.put_env(:cashier, :catalog_products, %{
+      "BK1" => Cashier.Product.new("OTHER", "Book", "12.50")
+    })
+
+    on_exit(fn ->
+      if previous_products do
+        Application.put_env(:cashier, :catalog_products, previous_products)
+      else
+        Application.delete_env(:cashier, :catalog_products)
+      end
+    end)
+
+    assert_raise ArgumentError, ~r/matching codes and Decimal prices/, fn ->
+      Catalog.fetch("BK1")
+    end
+  end
+
+  test "rejects products with a non-Decimal price before checkout" do
+    previous_products = Application.get_env(:cashier, :catalog_products)
+
+    Application.put_env(:cashier, :catalog_products, %{
+      "BK1" => %Cashier.Product{code: "BK1", name: "Book", price: nil}
+    })
+
+    on_exit(fn ->
+      if previous_products do
+        Application.put_env(:cashier, :catalog_products, previous_products)
+      else
+        Application.delete_env(:cashier, :catalog_products)
+      end
+    end)
+
+    assert_raise ArgumentError, ~r/matching codes and Decimal prices/, fn ->
+      Catalog.fetch("BK1")
+    end
   end
 end
