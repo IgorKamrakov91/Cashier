@@ -22,7 +22,8 @@ defmodule Cashier.Catalog do
   Fetches a product by code. Returns `{:ok, product}` or `:error`.
 
   Raises `ArgumentError` when a configured catalog is not a map of product
-  codes to `Cashier.Product` structs with matching codes and Decimal prices.
+  codes to `Cashier.Product` structs with matching codes and finite,
+  non-negative Decimal prices.
 
   ## Examples
 
@@ -71,10 +72,11 @@ defmodule Cashier.Catalog do
     unless is_map(products) and
              Enum.all?(products, fn {code, product} ->
                is_binary(code) and match?(%Product{}, product) and
-                 product.code == code and match?(%Decimal{}, product.price)
+                 product.code == code and match?(%Decimal{}, product.price) and
+                 is_integer(product.price.coef) and Decimal.compare(product.price, 0) != :lt
              end) do
       raise ArgumentError,
-            ":catalog_products must map string codes to Cashier.Product structs with matching codes and Decimal prices"
+            ":catalog_products must map string codes to Cashier.Product structs with matching codes and finite, non-negative Decimal prices"
     end
 
     products

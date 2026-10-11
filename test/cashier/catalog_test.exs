@@ -72,7 +72,7 @@ defmodule Cashier.CatalogTest do
     end)
 
     assert_raise ArgumentError,
-                 ":catalog_products must map string codes to Cashier.Product structs with matching codes and Decimal prices",
+                 ":catalog_products must map string codes to Cashier.Product structs with matching codes and finite, non-negative Decimal prices",
                  fn ->
                    Catalog.fetch("GR1")
                  end
@@ -92,7 +92,7 @@ defmodule Cashier.CatalogTest do
     end)
 
     assert_raise ArgumentError,
-                 ":catalog_products must map string codes to Cashier.Product structs with matching codes and Decimal prices",
+                 ":catalog_products must map string codes to Cashier.Product structs with matching codes and finite, non-negative Decimal prices",
                  fn ->
                    Catalog.all()
                  end
@@ -113,7 +113,7 @@ defmodule Cashier.CatalogTest do
       end
     end)
 
-    assert_raise ArgumentError, ~r/matching codes and Decimal prices/, fn ->
+    assert_raise ArgumentError, ~r/matching codes and finite, non-negative Decimal prices/, fn ->
       Catalog.fetch("BK1")
     end
   end
@@ -133,8 +133,36 @@ defmodule Cashier.CatalogTest do
       end
     end)
 
-    assert_raise ArgumentError, ~r/matching codes and Decimal prices/, fn ->
+    assert_raise ArgumentError, ~r/matching codes and finite, non-negative Decimal prices/, fn ->
       Catalog.fetch("BK1")
     end
+  end
+
+  test "rejects negative and non-finite catalog prices before checkout" do
+    previous_products = Application.get_env(:cashier, :catalog_products)
+
+    on_exit(fn ->
+      if previous_products do
+        Application.put_env(:cashier, :catalog_products, previous_products)
+      else
+        Application.delete_env(:cashier, :catalog_products)
+      end
+    end)
+
+    for price <- ["-0.01", "NaN", "Infinity", "-Infinity"] do
+      Application.put_env(:cashier, :catalog_products, %{
+        "BK1" => Cashier.Product.new("BK1", "Book", price)
+      })
+
+      assert_raise ArgumentError, ~r/finite, non-negative Decimal prices/, fn ->
+        Catalog.fetch("BK1")
+      end
+    end
+
+    Application.put_env(:cashier, :catalog_products, %{
+      "BK1" => Cashier.Product.new("BK1", "Book", "0")
+    })
+
+    assert {:ok, _product} = Catalog.fetch("BK1")
   end
 end
