@@ -16,8 +16,9 @@ defmodule Cashier.PricingRules.BulkDiscount do
       raise ArgumentError, "bulk discount :threshold must be a positive integer"
     end
 
-    unless match?(%Decimal{}, discount_price) and Decimal.compare(discount_price, 0) != :lt do
-      raise ArgumentError, "bulk discount :discount_price must be a non-negative Decimal"
+    unless match?(%Decimal{}, discount_price) and is_integer(discount_price.coef) and
+             Decimal.compare(discount_price, 0) != :lt do
+      raise ArgumentError, "bulk discount :discount_price must be a finite, non-negative Decimal"
     end
 
     :ok

@@ -60,13 +60,22 @@ defmodule Cashier.CheckoutTest do
       end
 
       assert_raise ArgumentError,
-                   ~r/bulk discount :discount_price must be a non-negative Decimal/,
+                   ~r/bulk discount :discount_price must be a finite, non-negative Decimal/,
                    fn ->
                      Cashier.new([
                        {Cashier.PricingRules.BulkDiscount,
                         product_code: "SR1", threshold: 3, discount_price: Decimal.new("-1.00")}
                      ])
                    end
+
+      for price <- ["NaN", "Infinity", "-Infinity"] do
+        assert_raise ArgumentError, ~r/finite, non-negative Decimal/, fn ->
+          Cashier.new([
+            {Cashier.PricingRules.BulkDiscount,
+             product_code: "SR1", threshold: 3, discount_price: Decimal.new(price)}
+          ])
+        end
+      end
 
       assert_raise ArgumentError, ~r/fraction price :fraction/, fn ->
         Cashier.new([
