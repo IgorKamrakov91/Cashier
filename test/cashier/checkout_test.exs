@@ -159,22 +159,28 @@ defmodule Cashier.CheckoutTest do
       assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 500
     end
 
-    @tag timeout: 3000
-    test "activity resets the timeout" do
-      {:ok, co} = Cashier.new(@pricing_rules, timeout: 1_000)
+    for activity <- [:scan, :total] do
+      @activity activity
+      @tag timeout: 4000
+      test "#{activity} resets the timeout" do
+        {:ok, co} = Cashier.new(@pricing_rules, timeout: 1_000)
+        ref = Process.monitor(co)
 
-      # Wait briefly within the timeout, then scan to reset the timer.
-      # Keep the timing comfortably below the timeout to avoid scheduler jitter.
-      Process.sleep(100)
-      :ok = Cashier.scan(co, "GR1")
+        Process.sleep(600)
 
-      # The checkout should still be alive well after the original deadline.
-      Process.sleep(400)
-      assert Process.alive?(co)
+        case @activity do
+          :scan -> assert :ok = Cashier.scan(co, "GR1")
+          :total -> assert Decimal.equal?(Cashier.total(co), Decimal.new(0))
+        end
 
-      # Now let it expire from the last activity.
-      ref = Process.monitor(co)
-      assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 1_200
+        # Cross the original 1,000 ms deadline, but stay comfortably before
+        # the new deadline (at least 1,600 ms after checkout creation).
+        refute_receive {:DOWN, ^ref, :process, ^co, _reason}, 600
+        assert Process.alive?(co)
+
+        # Activity must reset, not disable, idle expiration.
+        assert_receive {:DOWN, ^ref, :process, ^co, :normal}, 1_200
+      end
     end
   end
 
